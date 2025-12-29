@@ -206,6 +206,7 @@ class MatrixOutput(MediaPlayerEntity):
         """Select the source."""
         input_id = self._matrix.inputs_by_name.get(source)
         if input_id:
+            _LOGGER.debug("Changing source on output %s to input %s", self.output_id, input_id)
             self._matrix.change_source(
                 output_id=self.output_id, input_id=input_id
             )
