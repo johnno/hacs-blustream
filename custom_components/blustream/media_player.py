@@ -59,10 +59,12 @@ async def async_setup_entry(
     for output_id, output_name in matrix.outputs_by_id.items():
         _LOGGER.debug("Setting up CEC entity for output_id: %s, %s", output_id, output_name)
         cec_entity = MatrixOutputCec(output_id, output_name, matrix)
+        _LOGGER.debug("Created CEC entity with unique_id: %s", cec_entity.unique_id)
         outputs.append(cec_entity)
 
     # Request a status update so all listeners are notified with current status
     _LOGGER.info("Refreshing status after setup")
+    _LOGGER.info("Total entities to add: %s", len(outputs))
     matrix.update_status()
     async_add_entities(outputs)
 
