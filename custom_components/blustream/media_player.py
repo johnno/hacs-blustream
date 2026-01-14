@@ -184,6 +184,8 @@ class MatrixOutput(MediaPlayerEntity):
         self.output_id = output_id
         self._matrix: Matrix = matrix
         self._attr_source_list = list(matrix.input_names)
+        # Display power state is unknown since CEC provides no feedback
+        self._attr_state = None
 
         mac = format_mac(self._matrix.mac)
         self._attr_unique_id = f"{mac}-output{output_id}"
