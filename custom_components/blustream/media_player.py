@@ -288,11 +288,12 @@ class MatrixOutputCec(MediaPlayerEntity):
         self._attr_state = None
 
         mac = format_mac(self._matrix.mac)
-        self._attr_unique_id = f"{mac}-output{output_id}-cec"
+        output_attr_unique_id = f"{mac}-output{output_id}"
+        self._attr_unique_id = f"{output_attr_unique_id}-cec"
 
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, self._attr_unique_id)},
-            name=f"{output_name} CEC",
+            identifiers={(DOMAIN, output_attr_unique_id)},
+            name=output_name,
             manufacturer="Blustream",
             configuration_url=f"http://{self._matrix.hostname}",
             model=self._matrix.device_name,
