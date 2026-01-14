@@ -170,7 +170,13 @@ class MatrixOutput(MediaPlayerEntity):
     _attr_should_poll = False
     _attr_name = None
 
-    _attr_supported_features = MediaPlayerEntityFeature.SELECT_SOURCE
+    _attr_supported_features = (
+        MediaPlayerEntityFeature.SELECT_SOURCE
+        | MediaPlayerEntityFeature.TURN_ON
+        | MediaPlayerEntityFeature.TURN_OFF
+        | MediaPlayerEntityFeature.VOLUME_STEP
+        | MediaPlayerEntityFeature.VOLUME_MUTE
+    )
     _attr_device_class = MediaPlayerDeviceClass.RECEIVER
 
     def __init__(self, output_id, output_name, matrix) -> None:
@@ -211,3 +217,38 @@ class MatrixOutput(MediaPlayerEntity):
             )
         else:
             _LOGGER.error("Invalid input source: %s, valid sources %s", source, self._attr_source_list)
+
+    def turn_on(self) -> None:
+        """Send CEC power on command to the display."""
+        try:
+            self._matrix.send_cec_power_on(self.output_id)
+        except AttributeError:
+            _LOGGER.error("CEC power on not supported by pyblustream library")
+
+    def turn_off(self) -> None:
+        """Send CEC power off command to the display."""
+        try:
+            self._matrix.send_cec_power_off(self.output_id)
+        except AttributeError:
+            _LOGGER.error("CEC power off not supported by pyblustream library")
+
+    def volume_up(self) -> None:
+        """Send CEC volume up command to the display."""
+        try:
+            self._matrix.send_cec_volume_up(self.output_id)
+        except AttributeError:
+            _LOGGER.error("CEC volume up not supported by pyblustream library")
+
+    def volume_down(self) -> None:
+        """Send CEC volume down command to the display."""
+        try:
+            self._matrix.send_cec_volume_down(self.output_id)
+        except AttributeError:
+            _LOGGER.error("CEC volume down not supported by pyblustream library")
+
+    def mute_volume(self, mute: bool) -> None:
+        """Send CEC mute toggle command to the display."""
+        try:
+            self._matrix.send_cec_mute(self.output_id)
+        except AttributeError:
+            _LOGGER.error("CEC mute not supported by pyblustream library")
