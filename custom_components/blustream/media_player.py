@@ -55,6 +55,12 @@ async def async_setup_entry(
         my_listener.add_matrix_output_entity(output_id, matrix_output)
         outputs.append(matrix_output)
 
+    # Setup CEC sink device entities for each output
+    for output_id, output_name in matrix.outputs_by_id.items():
+        _LOGGER.debug("Setting up CEC entity for output_id: %s, %s", output_id, output_name)
+        cec_entity = MatrixOutputCec(output_id, output_name, matrix)
+        outputs.append(cec_entity)
+
     # Request a status update so all listeners are notified with current status
     _LOGGER.info("Refreshing status after setup")
     matrix.update_status()
@@ -219,6 +225,100 @@ class MatrixOutput(MediaPlayerEntity):
             )
         else:
             _LOGGER.error("Invalid input source: %s, valid sources %s", source, self._attr_source_list)
+
+    def turn_on(self) -> None:
+        """Send CEC power on command to the display."""
+        try:
+            self._matrix.send_cec_power_on(self.output_id)
+        except AttributeError:
+            _LOGGER.error("CEC power on not supported by pyblustream library")
+
+    def turn_off(self) -> None:
+        """Send CEC power off command to the display."""
+        try:
+            self._matrix.send_cec_power_off(self.output_id)
+        except AttributeError:
+            _LOGGER.error("CEC power off not supported by pyblustream library")
+
+    def volume_up(self) -> None:
+        """Send CEC volume up command to the display."""
+        try:
+            self._matrix.send_cec_volume_up(self.output_id)
+        except AttributeError:
+            _LOGGER.error("CEC volume up not supported by pyblustream library")
+
+    def volume_down(self) -> None:
+        """Send CEC volume down command to the display."""
+        try:
+            self._matrix.send_cec_volume_down(self.output_id)
+        except AttributeError:
+            _LOGGER.error("CEC volume down not supported by pyblustream library")
+
+    def mute_volume(self, mute: bool) -> None:
+        """Send CEC mute toggle command to the display."""
+        try:
+            self._matrix.send_cec_mute(self.output_id)
+        except AttributeError:
+            _LOGGER.error("CEC mute not supported by pyblustream library")
+
+
+class MatrixOutputCec(MediaPlayerEntity):
+    """Represents a CEC-controlled sink device (TV/display) connected to a matrix output."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = False
+    _attr_name = "CEC"
+
+    _attr_supported_features = (
+        MediaPlayerEntityFeature.SELECT_SOURCE
+        | MediaPlayerEntityFeature.TURN_ON
+        | MediaPlayerEntityFeature.TURN_OFF
+        | MediaPlayerEntityFeature.VOLUME_STEP
+        | MediaPlayerEntityFeature.VOLUME_MUTE
+    )
+    _attr_device_class = MediaPlayerDeviceClass.TV
+
+    def __init__(self, output_id, output_name, matrix) -> None:
+        """Init."""
+        self.output_id = output_id
+        self._matrix: Matrix = matrix
+        # HDMI inputs on the TV (typically 1-4)
+        self._attr_source_list = ["HDMI 1", "HDMI 2", "HDMI 3", "HDMI 4"]
+        # Display power state is unknown since CEC provides no feedback
+        self._attr_state = None
+
+        mac = format_mac(self._matrix.mac)
+        self._attr_unique_id = f"{mac}-output{output_id}-cec"
+
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, self._attr_unique_id)},
+            name=f"{output_name} CEC",
+            manufacturer="Blustream",
+            configuration_url=f"http://{self._matrix.hostname}",
+            model=self._matrix.device_name,
+            sw_version=self._matrix.firmware_version,
+            via_device=(DOMAIN, mac),
+        )
+
+    def select_source(self, source: str) -> None:
+        """Select HDMI input on the TV via CEC."""
+        # Map source name to HDMI input number (1-4)
+        source_map = {
+            "HDMI 1": 1,
+            "HDMI 2": 2,
+            "HDMI 3": 3,
+            "HDMI 4": 4,
+        }
+        hdmi_input = source_map.get(source)
+        if hdmi_input:
+            try:
+                self._matrix.send_cec_input_select(self.output_id, hdmi_input)
+                self._attr_source = source
+                self.schedule_update_ha_state()
+            except AttributeError:
+                _LOGGER.error("CEC input select not supported by pyblustream library")
+        else:
+            _LOGGER.error("Invalid HDMI input: %s, valid inputs %s", source, self._attr_source_list)
 
     def turn_on(self) -> None:
         """Send CEC power on command to the display."""
